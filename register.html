@@ -1,1 +1,59 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>إنشاء حساب — ZOMA</title><link rel="stylesheet" href="css/zoma.css"></head><body><main class="form-wrap"><form class="form panel" id="f"><div class="eyebrow">CREATE ACCOUNT</div><h1>ابدأ مع ZOMA</h1><div class="row"><div class="field"><label>الاسم الأول</label><input id="first" required></div><div class="field"><label>الاسم الثاني</label><input id="middle"></div></div><div class="row"><div class="field"><label>الاسم الثالث</label><input id="third"></div><div class="field"><label>اسم العائلة</label><input id="last" required></div></div><div class="field"><label>رقم الهاتف</label><input id="phone" inputmode="tel" required></div><div class="field"><label>كلمة المرور</label><input id="password" type="password" minlength="6" required></div><div class="notice">سيتم إنشاء بريد دخول داخلي تلقائيًا من رقم الهاتف.</div><button class="btn btn-primary" style="width:100%">إنشاء الحساب</button><p id="m" class="muted"></p></form></main><script src="js/config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/auth.js"></script><script>f.onsubmit=async e=>{e.preventDefault();const full=[first.value,middle.value,third.value,last.value].map(x=>x.trim()).filter(Boolean).join(" ");const email=internalEmailFromPhone(phone.value);const {data,error}=await db.auth.signUp({email,password:password.value,options:{data:{full_name:full,phone:phone.value.trim()}}});if(error){m.textContent=error.message;return}if(data.user){const {error:pe}=await db.from("profiles").update({first_name:first.value.trim(),middle_name:middle.value.trim(),third_name:third.value.trim(),last_name:last.value.trim(),full_name:full,phone:phone.value.trim(),email}).eq("id",data.user.id);if(pe){m.textContent=pe.message;return}}m.textContent=data.session?"تم إنشاء الحساب":"تم إنشاء الحساب. إذا كان تأكيد البريد مفعّلًا في Supabase، ستحتاج لتعطيله لهذا النمط الداخلي أو تعديل إعداد المصادقة.";if(data.session)setTimeout(()=>location.href="dashboard.html",700)};</script></body></html>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>إنشاء حساب — ZOMA</title><link rel="stylesheet" href="css/zoma.css"></head><body><main class="form-wrap"><form class="form panel" id="f"><div class="eyebrow">CREATE ACCOUNT</div><h1>ابدأ مع ZOMA</h1><div class="row"><div class="field"><label>الاسم الأول</label><input id="first" autocomplete="given-name" required></div><div class="field"><label>الاسم الثاني</label><input id="middle" autocomplete="additional-name"></div></div><div class="row"><div class="field"><label>الاسم الثالث</label><input id="third"></div><div class="field"><label>اسم العائلة</label><input id="last" autocomplete="family-name" required></div></div><div class="field"><label>رقم الهاتف</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx" required></div><div class="field"><label>كلمة المرور</label><input id="password" type="password" minlength="6" autocomplete="new-password" required></div><div class="notice">سيتم إنشاء بريد دخول داخلي تلقائيًا من رقم الهاتف، ولن تحتاج إلى إدخال بريد إلكتروني حقيقي.</div><button id="submitBtn" class="btn btn-primary" style="width:100%">إنشاء الحساب</button><p id="m" class="muted" role="status" aria-live="polite"></p></form></main><script src="js/config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/auth.js"></script><script>
+const form=document.getElementById('f');
+const msg=document.getElementById('m');
+const submitBtn=document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (submitBtn.disabled) return;
+
+  msg.textContent='جارٍ إنشاء الحساب...';
+  submitBtn.disabled=true;
+
+  try {
+    const firstName=first.value.trim();
+    const middleName=middle.value.trim();
+    const thirdName=third.value.trim();
+    const lastName=last.value.trim();
+    const phoneValue=normalizeLoginPhone(phone.value);
+    const full=[firstName,middleName,thirdName,lastName].filter(Boolean).join(' ');
+
+    if (!firstName || !lastName) throw new Error('اكتب الاسم الأول واسم العائلة.');
+    if (phoneValue.length < 8 || phoneValue.length > 15) throw new Error('رقم الهاتف غير صحيح.');
+    if (password.value.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+
+    const email=internalEmailFromPhone(phoneValue);
+    const {data,error}=await db.auth.signUp({
+      email,
+      password:password.value,
+      options:{data:{full_name:full,phone:phoneValue}}
+    });
+
+    if(error) throw error;
+
+    if(data.user){
+      const {error:profileError}=await db.from('profiles').update({
+        first_name:firstName,
+        middle_name:middleName,
+        third_name:thirdName,
+        last_name:lastName,
+        full_name:full,
+        phone:phoneValue,
+        email
+      }).eq('id',data.user.id);
+      if(profileError) throw profileError;
+    }
+
+    if(data.session){
+      msg.textContent='تم إنشاء الحساب بنجاح. جاري فتح لوحة التحكم...';
+      setTimeout(()=>location.href='dashboard.html',500);
+    } else {
+      msg.textContent='تم إنشاء الحساب، لكن Supabase لم ينشئ جلسة دخول تلقائية. عطّل Confirm email من Authentication → Settings ثم أعد المحاولة مرة واحدة.';
+    }
+  } catch(error) {
+    console.error('ZOMA signup error:', error);
+    msg.textContent=window.authErrorMessage ? authErrorMessage(error) : (error?.message || 'تعذر إنشاء الحساب.');
+    submitBtn.disabled=false;
+  }
+});
+</script></body></html>

@@ -1,25 +1,36 @@
-# ZOMA — Latest GitHub Pages Build
+# ZOMA — آخر نسخة للموقع
 
-## 1) Database first
-Run these in Supabase SQL Editor, in order:
-1. `sql/00_zoma_complete_safe.sql`
-2. `sql/01_make_owner.sql`
-3. `sql/02_seed_permissions.sql`
+## قبل تجربة التسجيل
+في Supabase افتح:
+Authentication → Settings
 
-The latest permission RPC uses the parameter names `requested_module` and `requested_action`.
-Do NOT run `DROP FUNCTION ... CASCADE` for this function.
+وتأكد من:
+1. السماح بالتسجيل للمستخدمين الجدد مفعّل.
+2. Email Provider مفعّل.
+3. Confirm email مُعطّل، لأن ZOMA ينشئ بريد دخول داخليًا من رقم الهاتف ولا يعتمد على رسالة تأكيد بريد.
 
-## 2) Frontend
-Upload the contents of this folder to the root of the GitHub Pages repository. Keep `.nojekyll`.
+## مهم بعد ظهور 429
+لا تضغط إنشاء الحساب عدة مرات. انتظر عدة دقائق ثم حاول مرة واحدة فقط؛ 429 يعني أن خدمة Auth طبقت Rate Limit على المحاولات.
 
-`js/config.js` already contains the project URL and publishable/anon key. Never put a Supabase service_role key in the frontend.
+## الرفع على GitHub Pages
+ارفع محتويات هذا المجلد إلى الـRepository كما هي، مع الحفاظ على مجلدات:
+- admin/
+- css/
+- js/
+- sql/
 
-## 3) Pages
-Customer: index, register, login, dashboard, designs, order, card.
-Admin: admin/index, orders, customers, cards, designs, messages, admins, analytics, data.
+والملفات الرئيسية في الجذر.
 
-## 4) Core behavior
-- Customer login supports email, phone, and Card ID.
-- Confirming an order creates a Card ID and public slug through the database RPC.
-- Card URL is the same URL used for QR/NFC.
-- Admin can suspend/reactivate/replace cards and write NFC when Web NFC is available.
+## إعداد Supabase
+الملفات داخل `sql/`:
+- `00_zoma_complete_safe.sql` للإعداد/الترقية.
+- `01_make_owner.sql` لتعيين Owner.
+- `02_seed_permissions.sql` للصلاحيات.
+
+لا تستخدم `00_zoma_complete.sql` القديم إذا كان مشروعك الحالي يحتوي بالفعل على جداول ZOMA.
+
+## تسجيل الدخول
+يمكن للعميل استخدام البريد الداخلي أو رقم الهاتف أو Card ID. حل رقم الهاتف/Card ID يتم من خلال RPC في قاعدة البيانات.
+
+## مفتاح الواجهة
+`js/config.js` يحتوي Publishable/Anon key فقط. لا تضع Service Role Key في ملفات الموقع.
