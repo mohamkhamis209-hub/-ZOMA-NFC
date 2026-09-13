@@ -1,0 +1,1 @@
+document.querySelectorAll("[data-logout]").forEach(b=>b.addEventListener("click",signOut));
